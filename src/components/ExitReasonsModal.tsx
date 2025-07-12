@@ -6,6 +6,7 @@ interface ExitReasonsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (exitReasons: ExitReasonEntry[]) => void;
+  onSalesClick: () => void;
   totalExits: number;
   socio: string;
   fecha: string;
@@ -22,6 +23,7 @@ const ExitReasonsModal: React.FC<ExitReasonsModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onSalesClick,
   totalExits,
   socio,
   fecha,
@@ -47,11 +49,17 @@ const ExitReasonsModal: React.FC<ExitReasonsModalProps> = ({
     }
   }, [isOpen, existingReasons]);
 
-  const handleQuantityChange = (causa: CausaSalida, cantidad: number) => {
+  const handleCausaClick = (causa: CausaSalida) => {
+    if (causa === 'ventas') {
+      onSalesClick();
+      return;
+    }
+    
+    // For other causes, toggle selection
     setExitReasons(prev => 
       prev.map(entry => 
         entry.causa === causa 
-          ? { ...entry, cantidad: Math.max(0, cantidad) }
+          ? { ...entry, cantidad: entry.cantidad > 0 ? 0 : 1 }
           : entry
       )
     );
@@ -86,14 +94,15 @@ const ExitReasonsModal: React.FC<ExitReasonsModalProps> = ({
     }
   };
 
-  const getColorForCause = (causa: CausaSalida) => {
+  const getColorForCause = (causa: CausaSalida, isSelected: boolean) => {
+    const baseColor = isSelected ? 'border-2' : 'border';
     switch (causa) {
       case 'ventas':
-        return 'border-green-200 bg-green-50';
+        return `${baseColor} border-green-300 bg-green-50 hover:bg-green-100`;
       case 'muerte':
-        return 'border-red-200 bg-red-50';
+        return `${baseColor} border-red-300 bg-red-50 hover:bg-red-100`;
       case 'robo':
-        return 'border-orange-200 bg-orange-50';
+        return `${baseColor} border-orange-300 bg-orange-50 hover:bg-orange-100`;
     }
   };
 
@@ -108,7 +117,7 @@ const ExitReasonsModal: React.FC<ExitReasonsModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              Detalle de Salidas
+              Seleccionar Tipo de Salida
             </h3>
             <p className="text-sm text-gray-600 mt-1">
               {socio} - {new Date(fecha + 'T00:00:00').toLocaleDateString('es-CO')}
@@ -142,36 +151,30 @@ const ExitReasonsModal: React.FC<ExitReasonsModalProps> = ({
           </div>
 
           <div className="space-y-4">
-            {exitReasons.map((entry) => (
-              <div
-                key={entry.causa}
-                className={`p-4 border-2 rounded-lg ${getColorForCause(entry.causa)}`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center">
-                    {getIconForCause(entry.causa)}
-                    <span className="ml-2 font-medium text-gray-900">
-                      {causaSalidaLabels[entry.causa]}
-                    </span>
+            {exitReasons.map((entry) => {
+              const isSelected = entry.cantidad > 0;
+              return (
+                <button
+                  key={entry.causa}
+                  onClick={() => handleCausaClick(entry.causa)}
+                  className={`w-full p-4 rounded-lg transition-all cursor-pointer ${getColorForCause(entry.causa, isSelected)}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {getIconForCause(entry.causa)}
+                      <span className="ml-2 font-medium text-gray-900">
+                        {causaSalidaLabels[entry.causa]}
+                      </span>
+                    </div>
+                    {isSelected && (
+                      <div className="text-lg font-bold text-gray-900">
+                        ✓
+                      </div>
+                    )}
                   </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <label className="text-sm text-gray-600 min-w-0 flex-shrink-0">
-                    Cantidad:
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max={totalExits}
-                    value={entry.cantidad}
-                    onChange={(e) => handleQuantityChange(entry.causa, parseInt(e.target.value) || 0)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-6 pt-4 border-t border-gray-200">

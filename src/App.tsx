@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Save, BarChart3, AlertCircle, Search, Users, Calendar, Trash2, Edit3, Check, X, Eye } from 'lucide-react';
-import { supabase, Registro, SalidaDetalle } from './lib/supabase';
+import { supabase, Registro, SalidaDetalle, Venta } from './lib/supabase';
 import ExitReasonsModal, { ExitReasonEntry } from './components/ExitReasonsModal';
 import ExitDetailsModal from './components/ExitDetailsModal';
+import SalesModal, { SaleData } from './components/SalesModal';
 
 function App() {
   const [registros, setRegistros] = useState<Registro[]>([]);
@@ -32,8 +33,10 @@ function App() {
   // Modal states
   const [showExitReasonsModal, setShowExitReasonsModal] = useState(false);
   const [showExitDetailsModal, setShowExitDetailsModal] = useState(false);
+  const [showSalesModal, setShowSalesModal] = useState(false);
   const [selectedExitDetails, setSelectedExitDetails] = useState<SalidaDetalle[]>([]);
   const [selectedRegistroForExits, setSelectedRegistroForExits] = useState<Registro | null>(null);
+  const [ventasTotales, setVentasTotales] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -43,6 +46,7 @@ function App() {
     window.addEventListener('offline', handleOffline);
 
     loadRegistros();
+    loadVentasTotales();
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -90,6 +94,28 @@ function App() {
       setError('Error al cargar los registros');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadVentasTotales = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ventas')
+        .select('socio, valor_venta');
+
+      if (error) throw error;
+
+      const ventasPorSocio = data.reduce((acc, venta) => {
+        if (!acc[venta.socio]) {
+          acc[venta.socio] = 0;
+        }
+        acc[venta.socio] += venta.valor_venta || 0;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setVentasTotales(ventasPorSocio);
+    } catch (error) {
+      console.error('Error loading ventas totales:', error);
     }
   };
 
@@ -228,6 +254,18 @@ function App() {
   const handleExitReasonsSave = async (exitReasons: ExitReasonEntry[]) => {
     setShowExitReasonsModal(false);
     // Los detalles de salida se guardarán cuando se guarde el registro completo
+  };
+
+  const handleSalesClick = () => {
+    setShowExitReasonsModal(false);
+    setShowSalesModal(true);
+  };
+
+  const handleSalesSave = async (saleData: SaleData) => {
+    setShowSalesModal(false);
+    // Reload ventas totales
+    await loadVentasTotales();
+    alert('Venta registrada exitosamente.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -433,7 +471,7 @@ function App() {
   const estadisticasDelSocio = {
     totalRegistros: registrosDelSocio.length,
     totalEntradas: registrosDelSocio.reduce((sum, reg) => sum + (reg.entradas || 0), 0),
-    totalSalidas: registrosDelSocio.reduce((sum, reg) => sum + (reg.salidas || 0), 0),
+    ventaTotal: ventasTotales[socioSeleccionado] || 0,
     totalAcumulado: registrosDelSocio.reduce((sum, reg) => sum + (reg.total || 0), 0)
   };
 
@@ -747,11 +785,11 @@ function App() {
                       </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {estadisticasDelSocio.totalSalidas}
+                      <div className="text-2xl font-bold text-green-600">
+                        {`$${Math.round(estadisticasDelSocio.ventaTotal).toLocaleString('es-CO')}`}
                       </div>
                       <div className="text-sm text-gray-600">
-                        Total Salidas
+                        Venta Total
                       </div>
                     </div>
                     <div className="text-center">
@@ -1014,7 +1052,17 @@ function App() {
         isOpen={showExitReasonsModal}
         onClose={() => setShowExitReasonsModal(false)}
         onSave={handleExitReasonsSave}
+        onSalesClick={handleSalesClick}
         totalExits={selectedRegistroForExits?.salidas || 0}
+        socio={selectedRegistroForExits?.socio || ''}
+        fecha={selectedRegistroForExits?.fecha || ''}
+        registroId={selectedRegistroForExits?.id}
+      />
+
+      <SalesModal
+        isOpen={showSalesModal}
+        onClose={() => setShowSalesModal(false)}
+        onSave={handleSalesSave}
         socio={selectedRegistroForExits?.socio || ''}
         fecha={selectedRegistroForExits?.fecha || ''}
         registroId={selectedRegistroForExits?.id}
