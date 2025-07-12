@@ -459,7 +459,7 @@ function App() {
                 <Calculator className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-gray-800">
-                Registro Ganaderos 
+                Registros Ganaderos 
               </h1>
             </div>
             <p className="text-gray-600 text-lg">
