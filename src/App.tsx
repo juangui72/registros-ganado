@@ -4,6 +4,7 @@ import { supabase, Registro, SalidaDetalle, Venta } from './lib/supabase';
 import ExitReasonsModal, { ExitReasonEntry } from './components/ExitReasonsModal';
 import ExitDetailsModal from './components/ExitDetailsModal';
 import SalesModal, { SaleData } from './components/SalesModal';
+import SalesTableModal from './components/SalesTableModal';
 
 function App() {
   const [registros, setRegistros] = useState<Registro[]>([]);
@@ -34,6 +35,7 @@ function App() {
   const [showExitReasonsModal, setShowExitReasonsModal] = useState(false);
   const [showExitDetailsModal, setShowExitDetailsModal] = useState(false);
   const [showSalesModal, setShowSalesModal] = useState(false);
+  const [showSalesTableModal, setShowSalesTableModal] = useState(false);
   const [selectedExitDetails, setSelectedExitDetails] = useState<SalidaDetalle[]>([]);
   const [selectedRegistroForExits, setSelectedRegistroForExits] = useState<Registro | null>(null);
   const [ventasTotales, setVentasTotales] = useState<Record<string, number>>({});
@@ -764,9 +766,18 @@ function App() {
               {/* Estadísticas del Socio Seleccionado */}
               {socioSeleccionado && (
                 <div className="bg-white rounded-xl shadow-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Estadísticas de {socioSeleccionado}
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Estadísticas de {socioSeleccionado}
+                    </h3>
+                    <button
+                      onClick={() => setShowSalesTableModal(true)}
+                      className="px-3 py-1 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition-colors flex items-center"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-1" />
+                      Ventas
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-emerald-600">
@@ -1075,6 +1086,11 @@ function App() {
         socio={selectedRegistroForExits?.socio || ''}
         fecha={selectedRegistroForExits?.fecha || ''}
         totalExits={selectedRegistroForExits?.salidas || 0}
+      />
+
+      <SalesTableModal
+        isOpen={showSalesTableModal}
+        onClose={() => setShowSalesTableModal(false)}
       />
     </div>
   );
